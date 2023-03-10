@@ -1,0 +1,57 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  # Build job
+  build:
+    # Job name
+    name: Build
+    # OS to run on
+    runs-on: ubuntu-latest
+    # Steps
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Install node 16
+        uses: actions/setup-node
+        with:
+          node-version: 16.x
+
+      - name: Install npm Dependencies
+        run: yarn install
+
+      - name: Build Project
+        run: yarn build # yield ./dist or ./build, deploy it on next step
+
+      - name: Upload artifact in order to deploy
+        uses: actions/upload-artifact@v2
+        with:
+          name: production-files
+          path: ./build
+
+  # Deploy job
+  deploy:
+    # Job name
+    name: Deploy
+    # OS to run on
+    runs-on: ubuntu-latest
+    # pre-requisite
+    needs: build # previous job
+    # Steps
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: production-files
+          path: ./build
+      - name: Deploy to github pages
+        uses: peacerisis/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GH_ACCESS_TOKEN}}
+          publish_dir: ./build
